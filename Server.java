@@ -8,9 +8,6 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.*;
 import java.util.logging.FileHandler;
-//import java.nio.file.Files;
-//import java.nio.file.NoSuchFileException;
-//import java.nio.file.Paths;
 
 class Server {
 	public static boolean loggedIn = false;
@@ -18,9 +15,7 @@ class Server {
 	public static boolean passwordSpecified = false;
 	public static boolean userSpecified = false;
 	public static String username;
-	public static String account;
 	public static String byteStreamType = "b";
-//	public static String directory = "./files";
 	public static final String rootDirectory = "./files";
 	public static String workingDirectory = "./files";
 	public static String oldFileName = "\0";
@@ -28,6 +23,7 @@ class Server {
 	public static String fileToRetr;
 	public static String fileToStor = " ";
 	public static String storType = " ";
+	//Arbritary storage size used.
 	public static long serverSpace = 20000;
     public static void main(String argv[]) throws Exception 
     {
@@ -39,34 +35,33 @@ class Server {
 	System.out.println("listening for connection");
 	Socket connectionSocket = welcomeSocket.accept();
 	boolean accountSpecified = false;
-
+	int arguments = 0;
+	// Defining streams connected to socket to be used later
 	DataOutputStream  outToClient = new DataOutputStream(connectionSocket.getOutputStream());
 	outToClient.writeBytes("+SK725 SFTP Service" + '\n');
-//	System.out.println("its sent lol");
 	BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
 	DataInputStream binFromClient = new DataInputStream(connectionSocket.getInputStream());
 	while(true) {
+		// reading client commands and arguments
 	    clientResponse = inFromClient.readLine();
 	    clientCommand = clientResponse.split("\\s+")[0].toUpperCase();
-		if (clientCommand.equals("USER")){
+		//used for error handling
+	    arguments = clientResponse.split("\\s+").length;
+	    //Conditional statements to find command entered
+		//Server response is declared by the appropriate command and written out to client at the end
+	    if (clientCommand.equals("USER")){
 			serverResponse = user(clientResponse.split("\\s+")[1]);
-//			outToClient.writeBytes(user(clientResponse.split("\\s+")[1]) + '\n');
 		}else if(clientCommand.equals("ACCT")){
 			serverResponse = acct(clientResponse.split("\\s+")[1]);
-//			outToClient.writeBytes(acct(clientResponse.split("\\s+")[1])+ '\n');
 		}else if(clientCommand.equals("PASS")){
 			serverResponse = pass(clientResponse.split("\\s+")[1]);
-//			outToClient.writeBytes(pass(clientResponse.split("\\s+")[1])+ '\n');
-		}else if(clientCommand.equals("TYPE") && loggedIn){
+		}else if(clientCommand.equals("TYPE") && loggedIn && arguments > 1){
 			serverResponse = type(clientResponse.split("\\s+")[1]);
-//			outToClient.writeBytes(type(clientResponse.split("\\s+")[1])+ '\n');
-		}else if(clientCommand.equals("LIST") && loggedIn){
+		}else if(clientCommand.equals("LIST") && loggedIn && arguments > 1){
 			if (clientResponse.split("\\s+").length > 2) {
-//				System.out.println(list(clientResponse.split("\\s+")[1], directory));
-//				outToClient.writeBytes(list(clientResponse.split("\\s+")[1], clientResponse.split("\\s+")[2]));
 				serverResponse = list(clientResponse.split("\\s+")[1], clientResponse.split("\\s+")[2]);
 			}else{
-//				outToClient.writeBytes(list(clientResponse.split("\\s+")[1], directory));
+				// if no directory given, working directory is the default
 				serverResponse = list(clientResponse.split("\\s+")[1], workingDirectory);
 			}
 		}else if(clientCommand.equals("CDIR") && loggedIn){
@@ -75,56 +70,51 @@ class Server {
 			}else{
 				serverResponse = cdir(rootDirectory);
 			}
-//			outToClient.writeBytes(cdir(clientResponse.split("\\s+")[1])+ '\n');
-		}else if(clientCommand.equals("KILL") && loggedIn){
+		}else if(clientCommand.equals("KILL") && loggedIn && arguments > 1){
 			serverResponse = kill(clientResponse.split("\\s+")[1]);
-//			outToClient.writeBytes(kill(clientResponse.split("\\s+")[1])+ '\n');
-		}else if(clientCommand.equals("NAME") && loggedIn){
+		}else if(clientCommand.equals("NAME") && loggedIn && arguments > 1){
 			serverResponse = name(clientResponse.split("\\s+")[1]);
 			if (serverResponse.equals("+File exists")){
 				oldFileName = clientResponse.split("\\s+")[1];
 			}
-		}else if(clientCommand.equals("TOBE") && loggedIn){
+		}else if(clientCommand.equals("TOBE") && loggedIn && arguments > 1){
 			if (!oldFileName.isEmpty()) {
 				serverResponse = tobe(oldFileName, clientResponse.split("\\s+")[1]);
 			}
 		}
 		else if(clientCommand.equals("DONE")){
 			outToClient.writeBytes(done()+ '\n');
+			//If done sent by client, while loop broken and code terminates
 			break;
-		}else if(clientCommand.equals("RETR") && loggedIn){
+		}else if(clientCommand.equals("RETR") && loggedIn && arguments > 1){
 			serverResponse = retr(clientResponse.split("\\s+")[1]);
-			System.out.println(serverResponse);
-//			outToClient.writeBytes(kill(clientResponse.split("\\s+")[1])+ '\n');
 		}else if(clientCommand.equals("SEND") && loggedIn){
 			send(fileToRetr,outToClient);
-			serverResponse = "file transfer finished";
-//			continue;
-//			outToClient.writeBytes(kill(clientResponse.split("\\s+")[1])+ '\n');
+			serverResponse = "";
 		}else if(clientCommand.equals("STOP") && loggedIn){
 			serverResponse = stop();
-//			outToClient.writeBytes(kill(clientResponse.split("\\s+")[1])+ '\n');
-		}else if(clientCommand.equals("STOR") && loggedIn){
+		}else if(clientCommand.equals("STOR") && loggedIn && arguments > 2){
 			if (clientResponse.split("\\s+").length > 2) {
 				serverResponse = stor(clientResponse.split("\\s+")[1], clientResponse.split("\\s+")[2]);
 			}else{
 				serverResponse = "-Invalid command, not enough arguments";
 			}
-		}else if (clientCommand.equals("SIZE") && loggedIn ){
+		}else if (clientCommand.equals("SIZE") && loggedIn && arguments > 1){
 			if (!fileToStor.equals(" ")){
 				System.out.println(Long.parseLong(clientResponse.split("\\s+")[1]));
 				serverResponse = size(Long.parseLong(clientResponse.split("\\s+")[1]));
 				outToClient.writeBytes(serverResponse+'\0' +"\r\n");
-				if (serverResponse.charAt(0) == '+') {
+				if (serverResponse.charAt(0) == '+') { //Checks if file allowed to be stored
 					serverResponse = saveFile(fileToStor, Long.parseLong(clientResponse.split("\\s+")[1]),inFromClient,binFromClient);
 				}
 			}else {
 				serverResponse = "-File not specified";
 			}
 		}
-		else{
+		else{//Default response if no implemented command is specified
 			serverResponse="- Invalid command or not logged in";
 		}
+		//Outputs out to client
 		outToClient.writeBytes(serverResponse +'\0' +"\r\n");
 	}
     }
@@ -214,32 +204,32 @@ class Server {
     	StringBuilder data = new StringBuilder();
     	int i = 1;
     	File f;
+		if (dir.equals(workingDirectory)) {
+			f = new File(dir);
+			data.append(dir.substring(2) + ": \r\n");
+		}else{
+			f = new File(rootDirectory+'/'+dir);
+			data.append(dir + ": \r\n");
+		}
 
-		f = new File(dir);
-
-		data.append(dir.substring(2) + "\r\n");
 		File[] files = f.listFiles();
 		for (File file : files){
 			name = file.getName();
 			if (format.equals("F")){
-				System.out.println(file.getName());
 				data.append(name+ "\r\n");
 			}else if(format.equals("V")){
 				lastModified = Files.getLastModifiedTime(Paths.get(file.getPath())).toString();
 				owner = Files.getOwner(Paths.get(file.getPath())).toString();
 				size = String.valueOf(Files.size(Paths.get(file.getPath())));
 				data.append(name + " "  + size + " " + lastModified + " " + owner + "\r\n");
-//				System.out.println(data[i]);
 			}else{
-				return "-invalid option"; //find the proper command for this
+				return "-invalid option";
 			}
 		}
-//		data.append("\0\r\n");
 		return data.toString();
 	}
 
 	public static String cdir(String d){
-//    	if ((rootDirectory)
 		if (d.equals(rootDirectory)){
 			workingDirectory = rootDirectory;
 			return "!Changed working dir to " + rootDirectory.substring(2);
@@ -247,17 +237,17 @@ class Server {
 		File newDirectory = new File(rootDirectory+"/"+d);
 		if (newDirectory.isDirectory()){
 			workingDirectory = newDirectory.toString();
-//			System.out.println(workingDirectory);
 			return "!Changed working dir to " +d;
 		}else{
 			return "-Can't connect to directory because this directory doesnt exist";
 		}
 	}
 	public static String kill(String k) throws IOException {
-		try {
-			Files.deleteIfExists(Paths.get(workingDirectory+"/"+k));
+		File killFile = new File(workingDirectory+"/"+k);
+		if (killFile.exists()){
+			killFile.delete();
 			return "+"+k+ " deleted";
-		} catch (NoSuchFileException e) {
+		}else{
 			return "-Not deleted because the file specified doesnt exist";
 		}
 
@@ -282,8 +272,6 @@ class Server {
 		return "+SK725 closing connection";
 	}
 	public static String retr(String file){
-		System.out.println("hei threer");
-//    	String fileCheck = workingDirectory+"/"+file
 		File f = new File(workingDirectory+"/"+file);
 		if (!f.exists()){
 			return "-File doesn't exist";
@@ -302,12 +290,10 @@ class Server {
 		int data;
 		if (byteStreamType.equals("b") || byteStreamType.equals("c")){
 			try(FileInputStream outStream = new FileInputStream(sendFile)){
-//				int data;
 				client.flush();
 				while ((data = outStream.read()) >= 0){
 					client.write(data);
 				}
-//				outStream.
 				outStream.close();
 				client.flush();
 			} catch (IOException e) {
@@ -315,7 +301,6 @@ class Server {
 			}
 		}else{
 			try(BufferedInputStream outStream = new BufferedInputStream(new FileInputStream(sendFile))){
-//				int data;
 				client.flush();
 				data = 0;
 				while((data = outStream.read(bArray)) >= 0){
@@ -323,7 +308,6 @@ class Server {
 				}
 				outStream.close();
 				client.flush();
-
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -339,9 +323,9 @@ class Server {
 	public static String stor(String type,String fileName){
     	File f = new File(workingDirectory+"/"+fileName);
 		fileToStor = fileName;
+		//Checks if file exists and type of stor and prompts the appropriate change that will be made
     	if(type.toUpperCase().equals("NEW")){
     		if (f.exists()){
-//    			return "+File exists, will create new generation of file";
 				fileToStor = " ";
 				storType = " ";
     			return "-File exists, but system doesn't support generations";
@@ -381,7 +365,6 @@ class Server {
 		}
 	}
 	public static String saveFile(String fileToStor,long fileSize,BufferedReader client,DataInputStream bClient) throws IOException {
-
 		if (storType.equals("r")){
 			kill(fileToStor);
 		}
@@ -411,9 +394,6 @@ class Server {
 			return "Saved "+fileToStor;
 
 		}
-
-    	// "+Saved <file-spec>
-		// "-Couldn't save because (reason)
 	}
 } 
 

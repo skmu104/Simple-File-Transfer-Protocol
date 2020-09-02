@@ -1,0 +1,33 @@
+//C = client, S = Server
+S:+SK725 SFTP Service
+C:user admin
+S:!admin logged in
+C:type a
+S:+Using Ascii mode
+C:retr toReceive.txt
+S:63
+C:Send
+S:\r\n
+C:cdir skmu104
+S:!Changed working dir to skmu104 
+C:list f
+S:files\skmu104: 
+notes.txt
+C:stor new toSend.txt
+S:+File does not exist, will create new file 
+24
+C:size 24
+S:+ok, waiting for file 
+Saved toSend.txt 
+C:list f
+S:files\skmu104: 
+notes.txt
+toSend.txt
+C:stor app notes.txt
+S:+Will append to file 
+34
+C:size 34
+S:+ok, waiting for file 
+Saved notes.txt 
+
+

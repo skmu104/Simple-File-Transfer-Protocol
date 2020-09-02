@@ -1,0 +1,47 @@
+//C = client, S = Server
+S:+SK725 SFTP Service
+C:user skmu104
+S:+User-id valid, send account and password 
+C:acct 001
+S:+Account valid, send password 
+C:pass suraj
+S:! Logged in
+C:acct 001
+S:! Account valid, logged-in
+C:list f
+S:files: 
+admin
+fila
+filo
+Hey_there.docx
+skmu104
+surajk24
+toKill.txt
+toReceive.txt
+toSend.txt
+C:list v skmu104
+S:skmu104: 
+notes.txt 34 2020-09-01T04:13:39.0336086Z DESKTOP-TUM6COG\suraj (User)
+C:cdir skmu104
+S:!Changed working dir to skmu104 
+C:cdir
+S:!Changed working dir to files 
+C:kill toKill.docx
+S:+toKill.docx deleted
+C:name Hey_there.docx
+S:+File exists
+C:tobe Hello_there.docx
+S:+Hey_there.docx renamed to Hello_there.docx 
+C:list f
+S:files: 
+admin
+fila
+filo
+Hello_there.docx
+skmu104
+surajk24
+toReceive.txt
+toSend.txt
+C:done
+S:+SK725 closing connection
+

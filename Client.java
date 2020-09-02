@@ -22,49 +22,41 @@ class Client {
 	    String storType = null;
 	    String byteStreamType = "b";
 	    int fileSize = 0;
-	    long maxTimeout;
 	    boolean timeout = false;
         BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
 	    System.out.println("opens connection to "+host);
         Socket clientSocket = new Socket(host, 6789);
+        // Defining streams connected to socket to be used later
         BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         DataInputStream binFromServer = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
         DataOutputStream boutToServer = new DataOutputStream(new BufferedOutputStream(clientSocket.getOutputStream()));
         System.out.println(inFromServer.readLine());
-//        boolean finished = false;
         while(true){
             DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
             sentence = inFromUser.readLine();
             outToServer.writeBytes(sentence + '\n');
             cmd = sentence.split("\\s")[0].toUpperCase();
-
-            if (cmd.equals("LIST")){
-//                BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            //Conditional statements for different comamnds to change based on how they are read
+            //by the client
+              if (cmd.equals("LIST") && sentence.split("\\s").length > 1 ){
                 while(true){
-//                    BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                     ServerResponse = inFromServer.readLine();
-//
-                    if(ServerResponse.equals("\0")){
+                    if (ServerResponse.charAt(0) == '-'){
+                        System.out.println(ServerResponse);
+                        break;
+                    }
+                    if(ServerResponse.equals("\0")){//null character sent by server indicating end of list
                         break;
                     }else {
                         System.out.println(ServerResponse);
                     }
                 }
             }else if(cmd.equals("SEND")){
-//                ServerResponse = inFromServer.readLine();
-                maxTimeout = new Date().getTime() + 100;
                 if (retrSuccess){
                     File f = new File("./"+retrFile);
-
                     if (byteStreamType.equals("a")){ //Ascii type stream transfer
                         BufferedOutputStream stream = new BufferedOutputStream(new FileOutputStream(f,false));
-//                        System.out.println(fileSize);
-                        for(int i = 0; i < fileSize -1;i++){
-//                            if (maxTimeout > new Date().getTime()){
-//                                System.out.println("-Transfer taking too long");
-//                                timeout = true;
-//                                break;
-//                            }
+                        for(int i = 0; i < fileSize ;i++){
                             stream.write(inFromServer.read());
                         }
                         stream.flush();
@@ -78,75 +70,57 @@ class Client {
                         int data;
                         int i = 0;
                         while(i < fileSize){
-//                            if (maxTimeout > new Date().getTime()){
-//                                System.out.println("-Transfer taking too long");
-////                                outToServer.writeBytes();
-//                                timeout = true;
-//                                break;
-//                            }
                              data = binFromServer.read(bArray);
                              stream.write(bArray,0,data);
                              i += data;
                         }
-
                         stream.flush();
                         stream.close();
                         retrSuccess = false;
                         retrFile = null;
                         fileSize = 0;
                     }
-//                    long timeout = new Date().getTime() +
                 }
                 if (!timeout) {
                     System.out.println(inFromServer.readLine());
                 }else{
-//                    inFromServer.close();
                     inFromServer.readLine();
                 }
             }
             else if(cmd.equals("RETR")){
                 ServerResponse = inFromServer.readLine();
-//                System.out.println(ServerResponse);
                 if (!ServerResponse.equals("-File doesn't exist")){
-
                     retrFile = sentence.split("\\s")[1];
                     File checkExists = new File("./"+retrFile);
                     if(checkExists.exists()){
                         retrFile = "";
-
                         retrSuccess = false;
                         System.out.println("-File already exists");
                     }else {
-                        timeout = false;
-                        retrSuccess = true;
-                        fileSize = Integer.parseInt(ServerResponse.split("\0")[0]);
-//                        if (ServerResponse.equals("0\0")) {
-//                            fileSize = 0;
-//                        } else {
-//                            fileSize = Integer.parseInt(ServerResponse);
-//                        }
+                        if (ServerResponse.charAt(0) == '-'){
+                            retrSuccess = false;
+                        }else{
+                            retrSuccess = true;
+                            fileSize = Integer.parseInt(ServerResponse.split("\0")[0]);
+                        }
+
                     }
                 }
                 System.out.println(ServerResponse);
-
-//                System.out.println();
             }
             else if(cmd.equals("DONE")){
                 ServerResponse = inFromServer.readLine();
                 System.out.println(ServerResponse);
-//                clientSocket.close();
-                break;
+                clientSocket.close();
+                System.exit(0);
             }else if(cmd.equals("TYPE")){
                 ServerResponse = inFromServer.readLine();
                 System.out.println(ServerResponse);
                 if (ServerResponse.equals("+Using Binary mode\0")){
-//                    System.out.println("hm bin works brother");
                     byteStreamType = "b";
                 }else if(ServerResponse.equals("+Using Ascii mode\0")){
-//                    System.out.println("hm Ascii works brother");
                     byteStreamType = "a";
                 }else if(ServerResponse.equals("+Using Continuous mode\0")){
-//                    System.out.println("hm Continuous works brother");
                     byteStreamType = "c";
                 }
             }else if (cmd.equals("STOR")){
@@ -155,8 +129,8 @@ class Client {
                 if (ServerResponse.charAt(0) == '+'){
                     storFile = sentence.split("\\s")[2];
                     storType = sentence.split("\\s")[1].toUpperCase();
-//                    System.out.println(storFile);
-//                    System.out.println(storType);
+                    File sendFile = new File("./"+storFile);
+                    System.out.println(sendFile.length());
                 }
             }
             else if(cmd.equals("SIZE")){
@@ -164,9 +138,8 @@ class Client {
                 ServerResponse = inFromServer.readLine();
                 System.out.println(ServerResponse);
                 if (ServerResponse.equals("+ok, waiting for file\0")){
-//                    if ()
                     File sendFile = new File("./"+storFile);
-                    System.out.println(sendFile.toString());
+//                    System.out.println(sendFile.toString());
                     if (sendFile.exists()){
                         byte[] bArray = new byte[(int) fileSize];
                         try {
@@ -182,11 +155,9 @@ class Client {
                             } else {
                                 FileInputStream fileSendFile = new FileInputStream(sendFile);
                                 int data = 0;
-                                System.out.println("started sending");
                                 while ((data = fileSendFile.read()) >= 0){
                                     boutToServer.write(data);
                                 }
-                                System.out.println("finished sending");
                                 fileSendFile.close();
                                 boutToServer.flush();
                             }
@@ -200,20 +171,10 @@ class Client {
                 }
             }
             else{
-//                BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-
+                //Default printing of serverResponse
                 ServerResponse = inFromServer.readLine();
-//            ServerResponse = inFromServer.
-//                if ()
                 System.out.println(ServerResponse);
             }
-
-
-
         }
-
-        clientSocket.close();
-
-	
     } 
 } 

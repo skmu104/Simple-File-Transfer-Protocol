@@ -1,0 +1,10 @@
+//C = client, S = Server
+S:+SK725 SFTP Service
+C:user admin
+S:!admin logged in
+C:type a
+S:+Using Ascii mode
+C:retr toReceive.txt
+S:11864
+C:Send
+
