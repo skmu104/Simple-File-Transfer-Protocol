@@ -101,7 +101,6 @@ class Server {
 			}
 		}else if (clientCommand.equals("SIZE") && loggedIn && arguments > 1){
 			if (!fileToStor.equals(" ")){
-				System.out.println(Long.parseLong(clientResponse.split("\\s+")[1]));
 				serverResponse = size(Long.parseLong(clientResponse.split("\\s+")[1]));
 				outToClient.writeBytes(serverResponse+'\0' +"\r\n");
 				if (serverResponse.charAt(0) == '+') { //Checks if file allowed to be stored
